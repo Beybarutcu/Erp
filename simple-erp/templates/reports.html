@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Reports - Simple ERP{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Business Reports</h1>
+</div>
+
+<div class="reports-grid">
+    <div class="report-card">
+        <h3>Inventory Value</h3>
+        <div class="report-value">${{ "%.2f"|format(data.inventory_value) }}</div>
+        <p>Total value of stock on hand</p>
+    </div>
+</div>
+
+<div class="content-section">
+    <h2>Low Stock Items</h2>
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Current Stock</th>
+                    <th>Reorder Level</th>
+                    <th>Unit Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if data.low_stock_items %}
+                    {% for item in data.low_stock_items %}
+                    <tr>
+                        <td>{{ item.name }}</td>
+                        <td class="warning-text">{{ item.quantity }}</td>
+                        <td>{{ item.reorder_level }}</td>
+                        <td>${{ "%.2f"|format(item.unit_price) }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center">All items are sufficiently stocked</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="content-section">
+    <h2>Top Selling Products</h2>
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Quantity Sold</th>
+                    <th>Revenue</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if data.top_products %}
+                    {% for product in data.top_products %}
+                    <tr>
+                        <td>{{ product.name }}</td>
+                        <td>{{ product.total_sold }}</td>
+                        <td>${{ "%.2f"|format(product.revenue) }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="3" class="text-center">No sales data available</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="content-section">
+    <h2>Monthly Sales Trend</h2>
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Month</th>
+                    <th>Total Sales</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if data.monthly_sales %}
+                    {% for sale in data.monthly_sales %}
+                    <tr>
+                        <td>{{ sale.month }}</td>
+                        <td>${{ "%.2f"|format(sale.total) }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="2" class="text-center">No sales data available</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="content-section">
+    <h2>Top Customers</h2>
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Customer</th>
+                    <th>Orders</th>
+                    <th>Total Spent</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if data.top_customers %}
+                    {% for customer in data.top_customers %}
+                    <tr>
+                        <td>{{ customer.name }}</td>
+                        <td>{{ customer.order_count }}</td>
+                        <td>${{ "%.2f"|format(customer.total_spent) }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="3" class="text-center">No customer data available</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

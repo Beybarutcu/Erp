@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}New Sales Order - Simple ERP{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>New Sales Order</h1>
+    <a href="{{ url_for('sales') }}" class="btn-secondary">← Back to Sales</a>
+</div>
+
+<div class="form-container">
+    <form method="POST" class="standard-form" id="salesForm">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="customer_id">Customer *</label>
+                <select id="customer_id" name="customer_id" required>
+                    <option value="">Select Customer</option>
+                    {% for customer in customers %}
+                    <option value="{{ customer.id }}">{{ customer.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="status">Status</label>
+                <select id="status" name="status">
+                    <option value="pending">Pending</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="notes">Notes</label>
+            <textarea id="notes" name="notes" rows="2"></textarea>
+        </div>
+        
+        <div class="order-items-section">
+            <h3>Order Items</h3>
+            <div id="itemsContainer">
+                <div class="order-item-row">
+                    <div class="form-group">
+                        <label>Product</label>
+                        <select name="product_id[]" class="product-select" onchange="updatePrice(this)">
+                            <option value="">Select Product</option>
+                            {% for product in products %}
+                            <option value="{{ product.id }}" data-price="{{ product.unit_price }}" data-stock="{{ product.quantity }}">
+                                {{ product.name }} (Stock: {{ product.quantity }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Quantity</label>
+                        <input type="number" name="quantity[]" min="1" value="1" class="quantity-input" onchange="calculateSubtotal(this)">
+                    </div>
+                    <div class="form-group">
+                        <label>Unit Price</label>
+                        <input type="number" name="unit_price[]" step="0.01" min="0" class="price-input" onchange="calculateSubtotal(this)" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Subtotal</label>
+                        <input type="number" class="subtotal-input" readonly>
+                    </div>
+                    <button type="button" class="btn-remove" onclick="removeItem(this)" style="margin-top: 28px;">×</button>
+                </div>
+            </div>
+            <button type="button" class="btn-secondary" onclick="addItem()">+ Add Item</button>
+        </div>
+        
+        <div class="total-section">
+            <h3>Total: $<span id="orderTotal">0.00</span></h3>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">Create Order</button>
+            <a href="{{ url_for('sales') }}" class="btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+function updatePrice(select) {
+    const row = select.closest('.order-item-row');
+    const option = select.options[select.selectedIndex];
+    const price = option.getAttribute('data-price');
+    const priceInput = row.querySelector('.price-input');
+    priceInput.value = price || 0;
+    calculateSubtotal(select);
+}
+
+function calculateSubtotal(element) {
+    const row = element.closest('.order-item-row');
+    const quantity = parseFloat(row.querySelector('.quantity-input').value) || 0;
+    const price = parseFloat(row.querySelector('.price-input').value) || 0;
+    const subtotal = quantity * price;
+    row.querySelector('.subtotal-input').value = subtotal.toFixed(2);
+    updateTotal();
+}
+
+function updateTotal() {
+    let total = 0;
+    document.querySelectorAll('.subtotal-input').forEach(input => {
+        total += parseFloat(input.value) || 0;
+    });
+    document.getElementById('orderTotal').textContent = total.toFixed(2);
+}
+
+function addItem() {
+    const container = document.getElementById('itemsContainer');
+    const firstRow = container.querySelector('.order-item-row');
+    const newRow = firstRow.cloneNode(true);
+    
+    newRow.querySelectorAll('input').forEach(input => input.value = '');
+    newRow.querySelector('select').selectedIndex = 0;
+    
+    container.appendChild(newRow);
+}
+
+function removeItem(button) {
+    const container = document.getElementById('itemsContainer');
+    if (container.querySelectorAll('.order-item-row').length > 1) {
+        button.closest('.order-item-row').remove();
+        updateTotal();
+    }
+}
+</script>
+{% endblock %}

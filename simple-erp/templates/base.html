@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Simple ERP{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    {% if session.user_id %}
+    <nav class="sidebar">
+        <div class="logo">
+            <h2>SimpleERP</h2>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+                <span class="icon">📊</span> Dashboard
+            </a></li>
+            <li><a href="{{ url_for('products') }}" class="nav-link {% if 'product' in request.endpoint %}active{% endif %}">
+                <span class="icon">📦</span> Inventory
+            </a></li>
+            <li><a href="{{ url_for('sales') }}" class="nav-link {% if 'sale' in request.endpoint %}active{% endif %}">
+                <span class="icon">💰</span> Sales
+            </a></li>
+            <li><a href="{{ url_for('customers') }}" class="nav-link {% if 'customer' in request.endpoint %}active{% endif %}">
+                <span class="icon">👥</span> Customers
+            </a></li>
+            <li><a href="{{ url_for('suppliers') }}" class="nav-link {% if 'supplier' in request.endpoint %}active{% endif %}">
+                <span class="icon">🏭</span> Suppliers
+            </a></li>
+            <li><a href="{{ url_for('reports') }}" class="nav-link {% if request.endpoint == 'reports' %}active{% endif %}">
+                <span class="icon">📈</span> Reports
+            </a></li>
+        </ul>
+        <div class="user-section">
+            <div class="user-info">
+                <p class="user-name">{{ session.full_name }}</p>
+                <p class="user-role">{{ session.role }}</p>
+            </div>
+            <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+        </div>
+    </nav>
+    {% endif %}
+
+    <main class="main-content {% if not session.user_id %}no-sidebar{% endif %}">
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

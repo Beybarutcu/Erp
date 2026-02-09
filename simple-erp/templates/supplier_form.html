@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}{% if supplier %}Edit{% else %}Add{% endif %} Supplier - Simple ERP{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{% if supplier %}Edit Supplier{% else %}Add New Supplier{% endif %}</h1>
+    <a href="{{ url_for('suppliers') }}" class="btn-secondary">← Back to Suppliers</a>
+</div>
+
+<div class="form-container">
+    <form method="POST" class="standard-form">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="name">Supplier Name *</label>
+                <input type="text" id="name" name="name" required 
+                       value="{% if supplier %}{{ supplier.name }}{% endif %}">
+            </div>
+            
+            <div class="form-group">
+                <label for="contact_person">Contact Person</label>
+                <input type="text" id="contact_person" name="contact_person" 
+                       value="{% if supplier %}{{ supplier.contact_person }}{% endif %}">
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" 
+                       value="{% if supplier %}{{ supplier.email }}{% endif %}">
+            </div>
+            
+            <div class="form-group">
+                <label for="phone">Phone</label>
+                <input type="tel" id="phone" name="phone" 
+                       value="{% if supplier %}{{ supplier.phone }}{% endif %}">
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="address">Address</label>
+            <textarea id="address" name="address" rows="3">{% if supplier %}{{ supplier.address }}{% endif %}</textarea>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">{% if supplier %}Update{% else %}Add{% endif %} Supplier</button>
+            <a href="{{ url_for('suppliers') }}" class="btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
