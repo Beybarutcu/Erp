@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}{% if machine %}{{ t('edit') }}{% else %}{{ t('add_machine') }}{% endif %} - Simple ERP{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{% if machine %}{{ t('edit') }} {{ t('machines') }}{% else %}{{ t('add_machine') }}{% endif %}</h1>
+    <a href="{{ url_for('machines') }}" class="btn-secondary">← {{ t('back') }}</a>
+</div>
+
+<div class="form-container">
+    <form method="POST" class="standard-form">
+        <h3>{{ t('description') }}</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="machine_code">{{ t('machine_code') }} *</label>
+                <input type="text" id="machine_code" name="machine_code" required 
+                       value="{% if machine %}{{ machine.machine_code }}{% endif %}"
+                       placeholder="ENJ-01">
+            </div>
+            
+            <div class="form-group">
+                <label for="machine_name">{{ t('machine_name') }} *</label>
+                <input type="text" id="machine_name" name="machine_name" required 
+                       value="{% if machine %}{{ machine.machine_name }}{% endif %}"
+                       placeholder="Enjeksiyon Makinesi #1">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="brand">{{ t('brand') }}</label>
+                <input type="text" id="brand" name="brand"
+                       value="{% if machine %}{{ machine.brand }}{% endif %}"
+                       placeholder="ARBURG">
+            </div>
+            
+            <div class="form-group">
+                <label for="model">{{ t('model') }}</label>
+                <input type="text" id="model" name="model"
+                       value="{% if machine %}{{ machine.model }}{% endif %}"
+                       placeholder="Allrounder 370S">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="tonnage">{{ t('tonnage') }} ({{ t('ton') }}) *</label>
+                <input type="number" id="tonnage" name="tonnage" required min="1"
+                       value="{% if machine %}{{ machine.tonnage }}{% endif %}">
+            </div>
+            
+            <div class="form-group">
+                <label for="status">{{ t('status') }}</label>
+                <select id="status" name="status">
+                    <option value="idle" {% if machine and machine.status == 'idle' %}selected{% endif %}>{{ t('idle') }}</option>
+                    <option value="working" {% if machine and machine.status == 'working' %}selected{% endif %}>{{ t('working') }}</option>
+                    <option value="maintenance" {% if machine and machine.status == 'maintenance' %}selected{% endif %}>{{ t('maintenance_status') }}</option>
+                    <option value="broken" {% if machine and machine.status == 'broken' %}selected{% endif %}>{{ t('broken') }}</option>
+                </select>
+            </div>
+        </div>
+
+        <h3 style="margin-top: 2rem;">Teknik Özellikler</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="injection_unit">{{ t('injection_unit') }} ({{ t('cm3') }})</label>
+                <input type="number" id="injection_unit" name="injection_unit" min="1"
+                       value="{% if machine %}{{ machine.injection_unit }}{% endif %}">
+            </div>
+            
+            <div class="form-group">
+                <label for="screw_diameter">{{ t('screw_diameter') }} ({{ t('mm') }})</label>
+                <input type="number" id="screw_diameter" name="screw_diameter" min="1"
+                       value="{% if machine %}{{ machine.screw_diameter }}{% endif %}">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="max_shot_weight">{{ t('max_shot_weight') }} ({{ t('gr') }})</label>
+                <input type="number" id="max_shot_weight" name="max_shot_weight" min="1"
+                       value="{% if machine %}{{ machine.max_shot_weight }}{% endif %}">
+            </div>
+            
+            <div class="form-group">
+                <label for="power_consumption">{{ t('power_consumption') }} ({{ t('kw') }})</label>
+                <input type="number" id="power_consumption" name="power_consumption" min="1"
+                       value="{% if machine %}{{ machine.power_consumption }}{% endif %}">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="min_mold_size">{{ t('min_mold_size') }} ({{ t('mm') }})</label>
+                <input type="number" id="min_mold_size" name="min_mold_size" min="1"
+                       value="{% if machine %}{{ machine.min_mold_size }}{% endif %}">
+            </div>
+            
+            <div class="form-group">
+                <label for="max_mold_size">{{ t('max_mold_size') }} ({{ t('mm') }})</label>
+                <input type="number" id="max_mold_size" name="max_mold_size" min="1"
+                       value="{% if machine %}{{ machine.max_mold_size }}{% endif %}">
+            </div>
+        </div>
+
+        <h3 style="margin-top: 2rem;">Konum ve Bakım</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="section">{{ t('section') }}</label>
+                <input type="text" id="section" name="section"
+                       value="{% if machine %}{{ machine.section }}{% endif %}"
+                       placeholder="Üretim Sahası A">
+            </div>
+            
+            <div class="form-group">
+                <label for="location">{{ t('location') }}</label>
+                <input type="text" id="location" name="location"
+                       value="{% if machine %}{{ machine.location }}{% endif %}"
+                       placeholder="Hat-2, Sağ">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="total_hours">{{ t('total_hours') }}</label>
+                <input type="number" id="total_hours" name="total_hours" min="0"
+                       value="{% if machine %}{{ machine.total_hours }}{% else %}0{% endif %}">
+            </div>
+            
+            <div class="form-group">
+                <label for="maintenance_interval_days">{{ t('maintenance_interval_days') }}</label>
+                <input type="number" id="maintenance_interval_days" name="maintenance_interval_days" min="1"
+                       value="{% if machine %}{{ machine.maintenance_interval_days }}{% else %}90{% endif %}">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="last_maintenance_date">{{ t('last_maintenance') }}</label>
+                <input type="date" id="last_maintenance_date" name="last_maintenance_date"
+                       value="{% if machine %}{{ machine.last_maintenance_date }}{% endif %}">
+            </div>
+            
+            <div class="form-group">
+                <label for="next_maintenance_date">{{ t('next_maintenance') }}</label>
+                <input type="date" id="next_maintenance_date" name="next_maintenance_date"
+                       value="{% if machine %}{{ machine.next_maintenance_date }}{% endif %}">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="notes">{{ t('notes') }}</label>
+            <textarea id="notes" name="notes" rows="3">{% if machine %}{{ machine.notes }}{% endif %}</textarea>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">
+                {% if machine %}{{ t('update') }}{% else %}{{ t('add') }}{% endif %} {{ t('machines') }}
+            </button>
+            <a href="{{ url_for('machines') }}" class="btn-secondary">{{ t('cancel') }}</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

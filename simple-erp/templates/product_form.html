@@ -1,78 +1,203 @@
 {% extends "base.html" %}
 
-{% block title %}{% if product %}Edit{% else %}Add{% endif %} Product - Simple ERP{% endblock %}
+{% block title %}{% if product %}{{ t('edit') }}{% else %}{{ t('add_product') }}{% endif %} - Simple ERP{% endblock %}
 
 {% block content %}
 <div class="page-header">
-    <h1>{% if product %}Edit Product{% else %}Add New Product{% endif %}</h1>
-    <a href="{{ url_for('products') }}" class="btn-secondary">← Back to Inventory</a>
+    <h1>{% if product %}{{ t('edit') }} {{ t('product_name') }}{% else %}{{ t('add_product') }}{% endif %}</h1>
+    <a href="{{ url_for('products') }}" class="btn-secondary">← {{ t('back') }}</a>
 </div>
 
 <div class="form-container">
     <form method="POST" class="standard-form">
+        <h3>{{ t('description') }}</h3>
         <div class="form-row">
             <div class="form-group">
-                <label for="name">Product Name *</label>
+                <label for="name">{{ t('product_name') }} *</label>
                 <input type="text" id="name" name="name" required 
                        value="{% if product %}{{ product.name }}{% endif %}">
             </div>
             
             <div class="form-group">
-                <label for="sku">SKU *</label>
+                <label for="sku">{{ t('sku') }} *</label>
                 <input type="text" id="sku" name="sku" required 
                        value="{% if product %}{{ product.sku }}{% endif %}">
             </div>
         </div>
-        
+
         <div class="form-row">
             <div class="form-group">
-                <label for="category">Category</label>
-                <input type="text" id="category" name="category" 
+                <label for="category">{{ t('category') }}</label>
+                <input type="text" id="category" name="category"
                        value="{% if product %}{{ product.category }}{% endif %}">
             </div>
             
             <div class="form-group">
-                <label for="supplier_id">Supplier</label>
-                <select id="supplier_id" name="supplier_id">
-                    <option value="">Select Supplier</option>
-                    {% for supplier in suppliers %}
-                    <option value="{{ supplier.id }}" 
-                            {% if product and product.supplier_id == supplier.id %}selected{% endif %}>
-                        {{ supplier.name }}
-                    </option>
-                    {% endfor %}
+                <label for="product_type">{{ t('product_type') }}</label>
+                <select id="product_type" name="product_type">
+                    <option value="finished_good" {% if product and product.product_type == 'finished_good' %}selected{% endif %}>{{ t('finished_good') }}</option>
+                    <option value="raw_material" {% if product and product.product_type == 'raw_material' %}selected{% endif %}>{{ t('raw_material') }}</option>
+                    <option value="packaging_material" {% if product and product.product_type == 'packaging_material' %}selected{% endif %}>{{ t('packaging_material') }}</option>
                 </select>
             </div>
         </div>
-        
+
         <div class="form-group">
-            <label for="description">Description</label>
-            <textarea id="description" name="description" rows="3">{% if product %}{{ product.description }}{% endif %}</textarea>
+            <label for="description">{{ t('description') }}</label>
+            <textarea id="description" name="description" rows="2">{% if product %}{{ product.description }}{% endif %}</textarea>
         </div>
-        
+
+        <h3 style="margin-top: 2rem;">{{ t('specifications') }}</h3>
         <div class="form-row">
             <div class="form-group">
-                <label for="quantity">Quantity *</label>
+                <label for="material_type">{{ t('material_type') }}</label>
+                <input type="text" id="material_type" name="material_type"
+                       value="{% if product %}{{ product.material_type }}{% endif %}"
+                       placeholder="PP, PE, ABS, vb.">
+            </div>
+            
+            <div class="form-group">
+                <label for="material_grade">{{ t('material_grade') }}</label>
+                <select id="material_grade" name="material_grade">
+                    <option value="">{{ t('select') }}</option>
+                    <option value="virgin" {% if product and product.material_grade == 'virgin' %}selected{% endif %}>{{ t('virgin') }}</option>
+                    <option value="recycled" {% if product and product.material_grade == 'recycled' %}selected{% endif %}>{{ t('recycled') }}</option>
+                    <option value="mixed" {% if product and product.material_grade == 'mixed' %}selected{% endif %}>{{ t('mixed') }}</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="color">{{ t('color') }}</label>
+                <input type="text" id="color" name="color"
+                       value="{% if product %}{{ product.color }}{% endif %}">
+            </div>
+            
+            <div class="form-group">
+                <label for="piece_weight">{{ t('piece_weight') }} ({{ t('gr') }})</label>
+                <input type="number" id="piece_weight" name="piece_weight" step="0.01" min="0"
+                       value="{% if product %}{{ product.piece_weight }}{% endif %}">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="dimensions">{{ t('dimensions') }}</label>
+                <input type="text" id="dimensions" name="dimensions"
+                       value="{% if product %}{{ product.dimensions }}{% endif %}"
+                       placeholder="100x50x30 mm">
+            </div>
+            
+            <div class="form-group">
+                <label for="technical_drawing_no">{{ t('technical_drawing_no') }}</label>
+                <input type="text" id="technical_drawing_no" name="technical_drawing_no"
+                       value="{% if product %}{{ product.technical_drawing_no }}{% endif %}">
+            </div>
+        </div>
+
+        <h3 style="margin-top: 2rem;">Üretim Bilgileri</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="mold_id">{{ t('select_mold') }}</label>
+                <select id="mold_id" name="mold_id">
+                    <option value="">{{ t('none') }}</option>
+                    {% for mold in molds %}
+                        <option value="{{ mold.id }}" 
+                                {% if product and product.mold_id == mold.id %}selected{% endif %}>
+                            {{ mold.mold_code }} - {{ mold.mold_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="cycle_time">{{ t('cycle_time') }} ({{ t('seconds') }})</label>
+                <input type="number" id="cycle_time" name="cycle_time" min="1"
+                       value="{% if product %}{{ product.cycle_time }}{% endif %}">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="pieces_per_hour">{{ t('pieces_per_hour') }}</label>
+            <input type="number" id="pieces_per_hour" name="pieces_per_hour" min="1"
+                   value="{% if product %}{{ product.pieces_per_hour }}{% endif %}">
+        </div>
+
+        <h3 style="margin-top: 2rem;">{{ t('stock_info') }}</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="quantity">{{ t('quantity') }} *</label>
                 <input type="number" id="quantity" name="quantity" required min="0"
                        value="{% if product %}{{ product.quantity }}{% else %}0{% endif %}">
             </div>
             
             <div class="form-group">
-                <label for="unit_price">Unit Price *</label>
-                <input type="number" id="unit_price" name="unit_price" required min="0" step="0.01"
-                       value="{% if product %}{{ product.unit_price }}{% else %}0.00{% endif %}">
+                <label for="unit">{{ t('unit') }}</label>
+                <select id="unit" name="unit">
+                    <option value="pcs" {% if product and product.unit == 'pcs' %}selected{% endif %}>{{ t('pcs') }}</option>
+                    <option value="kg" {% if product and product.unit == 'kg' %}selected{% endif %}>{{ t('kg') }}</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="reorder_level">{{ t('reorder_level') }}</label>
+                <input type="number" id="reorder_level" name="reorder_level" min="0"
+                       value="{% if product %}{{ product.reorder_level }}{% else %}10{% endif %}">
             </div>
             
             <div class="form-group">
-                <label for="reorder_level">Reorder Level</label>
-                <input type="number" id="reorder_level" name="reorder_level" min="0"
-                       value="{% if product %}{{ product.reorder_level }}{% else %}10{% endif %}">
+                <label for="packaging_qty">{{ t('packaging_qty') }}</label>
+                <input type="number" id="packaging_qty" name="packaging_qty" min="0"
+                       value="{% if product %}{{ product.packaging_qty }}{% endif %}"
+                       placeholder="500 adet/koli">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="storage_location">{{ t('storage_location') }}</label>
+                <input type="text" id="storage_location" name="storage_location"
+                       value="{% if product %}{{ product.storage_location }}{% endif %}"
+                       placeholder="A-Blok, Raf-12">
+            </div>
+            
+            <div class="form-group">
+                <label for="supplier_id">{{ t('supplier') }}</label>
+                <select id="supplier_id" name="supplier_id">
+                    <option value="">{{ t('none') }}</option>
+                    {% for supplier in suppliers %}
+                        <option value="{{ supplier.id }}" 
+                                {% if product and product.supplier_id == supplier.id %}selected{% endif %}>
+                            {{ supplier.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <h3 style="margin-top: 2rem;">{{ t('pricing') }}</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="cost_price">{{ t('cost_price') }} (₺)</label>
+                <input type="number" id="cost_price" name="cost_price" step="0.01" min="0"
+                       value="{% if product %}{{ product.cost_price }}{% endif %}">
+            </div>
+            
+            <div class="form-group">
+                <label for="unit_price">{{ t('unit_price') }} (₺) *</label>
+                <input type="number" id="unit_price" name="unit_price" required step="0.01" min="0"
+                       value="{% if product %}{{ product.unit_price }}{% endif %}">
             </div>
         </div>
         
         <div class="form-actions">
-            <button type="submit" class="btn-primary">{% if product %}Update{% else %}Add{% endif %} Product</button>
-            <a href="{{ url_for('products') }}" class="btn-secondary">Cancel</a>
+            <button type="submit" class="btn-primary">
+                {% if product %}{{ t('update') }}{% else %}{{ t('add') }}{% endif %}
+            </button>
+            <a href="{{ url_for('products') }}" class="btn-secondary">{{ t('cancel') }}</a>
         </div>
     </form>
 </div>

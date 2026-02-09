@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - Simple ERP{% endblock %}
+{% block title %}{{ t('dashboard') }} - Simple ERP{% endblock %}
 
 {% block content %}
 <div class="page-header">
-    <h1>Dashboard</h1>
-    <p>Welcome back, {{ session.full_name }}!</p>
+    <h1>{{ t('dashboard') }}</h1>
+    <p>{{ t('welcome_back') }}, {{ session.full_name }}!</p>
 </div>
 
 <div class="stats-grid">
@@ -13,7 +13,7 @@
         <div class="stat-icon">📦</div>
         <div class="stat-content">
             <h3>{{ stats.total_products }}</h3>
-            <p>Total Products</p>
+            <p>{{ t('total_products') }}</p>
         </div>
     </div>
     
@@ -21,7 +21,7 @@
         <div class="stat-icon">⚠️</div>
         <div class="stat-content">
             <h3>{{ stats.low_stock }}</h3>
-            <p>Low Stock Items</p>
+            <p>{{ t('low_stock') }}</p>
         </div>
     </div>
     
@@ -29,7 +29,7 @@
         <div class="stat-icon">👥</div>
         <div class="stat-content">
             <h3>{{ stats.total_customers }}</h3>
-            <p>Customers</p>
+            <p>{{ t('total_customers') }}</p>
         </div>
     </div>
     
@@ -37,30 +37,30 @@
         <div class="stat-icon">📋</div>
         <div class="stat-content">
             <h3>{{ stats.pending_orders }}</h3>
-            <p>Pending Orders</p>
+            <p>{{ t('pending_orders') }}</p>
         </div>
     </div>
     
     <div class="stat-card success">
         <div class="stat-icon">💵</div>
         <div class="stat-content">
-            <h3>${{ "%.2f"|format(stats.total_sales) }}</h3>
-            <p>Total Sales</p>
+            <h3>₺{{ "%.2f"|format(stats.total_sales) }}</h3>
+            <p>{{ t('total_sales') }}</p>
         </div>
     </div>
 </div>
 
 <div class="content-section">
-    <h2>Recent Orders</h2>
+    <h2>{{ t('recent_orders') }}</h2>
     <div class="table-container">
         <table class="data-table">
             <thead>
                 <tr>
-                    <th>Order Number</th>
-                    <th>Customer</th>
-                    <th>Date</th>
-                    <th>Total</th>
-                    <th>Status</th>
+                    <th>{{ t('order_number') }}</th>
+                    <th>{{ t('customer_name') }}</th>
+                    <th>{{ t('order_date') }}</th>
+                    <th>{{ t('total') }}</th>
+                    <th>{{ t('status') }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -70,13 +70,13 @@
                         <td>{{ order.order_number }}</td>
                         <td>{{ order.customer_name }}</td>
                         <td>{{ order.order_date[:10] }}</td>
-                        <td>${{ "%.2f"|format(order.total_amount) }}</td>
-                        <td><span class="badge badge-{{ order.status }}">{{ order.status }}</span></td>
+                        <td>₺{{ "%.2f"|format(order.total_amount) }}</td>
+                        <td><span class="badge badge-{{ order.status }}">{{ t(order.status) }}</span></td>
                     </tr>
                     {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="5" class="text-center">No recent orders</td>
+                        <td colspan="5" class="text-center">{{ t('no_recent_orders') }}</td>
                     </tr>
                 {% endif %}
             </tbody>

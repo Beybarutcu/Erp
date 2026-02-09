@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t('production') }} - Simple ERP{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{{ t('production_orders') }}</h1>
+    <a href="{{ url_for('add_production') }}" class="btn-primary">+ {{ t('add_production') }}</a>
+</div>
+
+<div class="content-section">
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>{{ t('order_number') }}</th>
+                    <th>{{ t('product_name') }}</th>
+                    <th>{{ t('mold_code') }}</th>
+                    <th>{{ t('machine_code') }}</th>
+                    <th>{{ t('planned_quantity') }}</th>
+                    <th>{{ t('produced_quantity') }}</th>
+                    <th>{{ t('scrap_quantity') }}</th>
+                    <th>{{ t('status') }}</th>
+                    <th>{{ t('quality_status') }}</th>
+                    <th>{{ t('actions') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if orders %}
+                    {% for order in orders %}
+                    <tr>
+                        <td><strong>{{ order.order_number }}</strong></td>
+                        <td>{{ order.product_name }}</td>
+                        <td>{{ order.mold_code }}</td>
+                        <td>{{ order.machine_code or '-' }}</td>
+                        <td>{{ "{:,}".format(order.planned_quantity) }}</td>
+                        <td>{{ "{:,}".format(order.produced_quantity) }}</td>
+                        <td class="{% if order.scrap_quantity > 0 %}warning-text{% endif %}">
+                            {{ "{:,}".format(order.scrap_quantity) }}
+                        </td>
+                        <td>
+                            <span class="badge badge-{{ order.status }}">
+                                {{ t(order.status) }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge badge-{{ order.quality_status }}">
+                                {{ t(order.quality_status) }}
+                            </span>
+                        </td>
+                        <td class="actions">
+                            {% if order.status == 'planned' %}
+                                <form method="POST" action="{{ url_for('start_production', id=order.id) }}" style="display:inline;">
+                                    <button type="submit" class="btn-small btn-success">{{ t('start_production') }}</button>
+                                </form>
+                            {% elif order.status == 'in_progress' %}
+                                <a href="{{ url_for('complete_production', id=order.id) }}" class="btn-small btn-primary">{{ t('complete_production') }}</a>
+                            {% elif order.status == 'completed' and order.quality_status == 'pending' %}
+                                <a href="{{ url_for('production_quality', id=order.id) }}" class="btn-small btn-warning">{{ t('quality_check') }}</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="10" class="text-center">{{ t('no_data') }}</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

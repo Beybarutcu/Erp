@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t('dashboard') }} - Üretim ERP{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{{ t('dashboard') }}</h1>
+    <p>{{ t('welcome_back') }}, {{ session.full_name }}!</p>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">📦</div>
+        <div class="stat-content">
+            <h3>{{ stats.total_products }}</h3>
+            <p>{{ t('total_products') }}</p>
+        </div>
+    </div>
+    
+    <div class="stat-card warning">
+        <div class="stat-icon">⚠️</div>
+        <div class="stat-content">
+            <h3>{{ stats.low_stock }}</h3>
+            <p>{{ t('low_stock') }}</p>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon">🔧</div>
+        <div class="stat-content">
+            <h3>{{ stats.total_molds }}</h3>
+            <p>{{ t('molds') }}</p>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon">⚙️</div>
+        <div class="stat-content">
+            <h3>{{ stats.production_today }}</h3>
+            <p>Bugünkü {{ t('production') }}</p>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon">👥</div>
+        <div class="stat-content">
+            <h3>{{ stats.total_customers }}</h3>
+            <p>{{ t('total_customers') }}</p>
+        </div>
+    </div>
+    
+    <div class="stat-card success">
+        <div class="stat-icon">💵</div>
+        <div class="stat-content">
+            <h3>₺{{ "%.2f"|format(stats.total_sales) }}</h3>
+            <p>{{ t('total_sales') }}</p>
+        </div>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <div class="content-section">
+        <h2>{{ t('recent_orders') }}</h2>
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>{{ t('order_number') }}</th>
+                        <th>{{ t('customer_name') }}</th>
+                        <th>{{ t('order_date') }}</th>
+                        <th>{{ t('total') }}</th>
+                        <th>{{ t('status') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if stats.recent_orders %}
+                        {% for order in stats.recent_orders %}
+                        <tr>
+                            <td>{{ order.order_number }}</td>
+                            <td>{{ order.customer_name }}</td>
+                            <td>{{ order.order_date[:10] }}</td>
+                            <td>₺{{ "%.2f"|format(order.total_amount) }}</td>
+                            <td><span class="badge badge-{{ order.status }}">{{ t(order.status) }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center">{{ t('no_data') }}</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="content-section">
+        <h2>Son {{ t('production') }} Emirleri</h2>
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Emir No</th>
+                        <th>{{ t('product_name') }}</th>
+                        <th>Kalıp</th>
+                        <th>Miktar</th>
+                        <th>{{ t('status') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if stats.recent_production %}
+                        {% for prod in stats.recent_production %}
+                        <tr>
+                            <td>{{ prod.order_number }}</td>
+                            <td>{{ prod.product_name }}</td>
+                            <td>{{ prod.mold_code }}</td>
+                            <td>{{ prod.produced_quantity }}/{{ prod.planned_quantity }}</td>
+                            <td><span class="badge badge-{{ prod.status }}">{{ t(prod.status) }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center">Üretim emri bulunmuyor</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

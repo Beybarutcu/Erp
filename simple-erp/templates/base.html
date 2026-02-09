@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ session.get('language', 'tr') }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,24 +12,59 @@
         <div class="logo">
             <h2>SimpleERP</h2>
         </div>
+        
+        <!-- Dil Değiştirici / Language Switcher -->
+        <div class="language-switcher">
+            <div class="language-dropdown" id="languageDropdown">
+                <div class="language-current" onclick="toggleLanguage()">
+                    <span class="language-icon">🌐</span>
+                    <span class="language-text">
+                        {% if session.get('language', 'tr') == 'tr' %}Türkçe{% else %}English{% endif %}
+                    </span>
+                    <span class="language-arrow">▼</span>
+                </div>
+                <div class="language-options">
+                    <a href="{{ url_for('set_language', lang='tr') }}" 
+                       class="language-option {% if session.get('language', 'tr') == 'tr' %}active{% endif %}">
+                        <span class="language-icon">🇹🇷</span>
+                        <span>Türkçe</span>
+                    </a>
+                    <a href="{{ url_for('set_language', lang='en') }}" 
+                       class="language-option {% if session.get('language') == 'en' %}active{% endif %}">
+                        <span class="language-icon">🇬🇧</span>
+                        <span>English</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
         <ul class="nav-menu">
             <li><a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
-                <span class="icon">📊</span> Dashboard
+                <span class="icon">📊</span> {{ t('dashboard') }}
             </a></li>
             <li><a href="{{ url_for('products') }}" class="nav-link {% if 'product' in request.endpoint %}active{% endif %}">
-                <span class="icon">📦</span> Inventory
+                <span class="icon">📦</span> {{ t('inventory') }}
+            </a></li>
+            <li><a href="{{ url_for('molds') }}" class="nav-link {% if 'mold' in request.endpoint %}active{% endif %}">
+                <span class="icon">🔧</span> {{ t('molds') }}
+            </a></li>
+            <li><a href="{{ url_for('machines') }}" class="nav-link {% if 'machine' in request.endpoint %}active{% endif %}">
+                <span class="icon">🏭</span> {{ t('machines') }}
+            </a></li>
+            <li><a href="{{ url_for('production') }}" class="nav-link {% if 'production' in request.endpoint %}active{% endif %}">
+                <span class="icon">⚙️</span> {{ t('production') }}
             </a></li>
             <li><a href="{{ url_for('sales') }}" class="nav-link {% if 'sale' in request.endpoint %}active{% endif %}">
-                <span class="icon">💰</span> Sales
+                <span class="icon">💰</span> {{ t('sales') }}
             </a></li>
             <li><a href="{{ url_for('customers') }}" class="nav-link {% if 'customer' in request.endpoint %}active{% endif %}">
-                <span class="icon">👥</span> Customers
+                <span class="icon">👥</span> {{ t('customers') }}
             </a></li>
             <li><a href="{{ url_for('suppliers') }}" class="nav-link {% if 'supplier' in request.endpoint %}active{% endif %}">
-                <span class="icon">🏭</span> Suppliers
+                <span class="icon">🚚</span> {{ t('suppliers') }}
             </a></li>
             <li><a href="{{ url_for('reports') }}" class="nav-link {% if request.endpoint == 'reports' %}active{% endif %}">
-                <span class="icon">📈</span> Reports
+                <span class="icon">📈</span> {{ t('reports') }}
             </a></li>
         </ul>
         <div class="user-section">
@@ -37,7 +72,7 @@
                 <p class="user-name">{{ session.full_name }}</p>
                 <p class="user-role">{{ session.role }}</p>
             </div>
-            <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+            <a href="{{ url_for('logout') }}" class="logout-btn">{{ t('logout') }}</a>
         </div>
     </nav>
     {% endif %}

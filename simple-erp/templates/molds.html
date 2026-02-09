@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t('molds') }} - Simple ERP{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{{ t('molds') }}</h1>
+    <a href="{{ url_for('add_mold') }}" class="btn-primary">+ {{ t('add_mold') }}</a>
+</div>
+
+<div class="content-section">
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>{{ t('mold_code') }}</th>
+                    <th>{{ t('mold_name') }}</th>
+                    <th>{{ t('cavity_count') }}</th>
+                    <th>{{ t('tonnage_range') }}</th>
+                    <th>{{ t('cycle_time') }}</th>
+                    <th>{{ t('total_shots') }}</th>
+                    <th>{{ t('status') }}</th>
+                    <th>{{ t('actions') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if molds %}
+                    {% for mold in molds %}
+                    <tr>
+                        <td><strong>{{ mold.mold_code }}</strong></td>
+                        <td>{{ mold.mold_name }}</td>
+                        <td>{{ mold.cavity_count }} {{ t('cavity') }}</td>
+                        <td>
+                            {% if mold.required_tonnage_min and mold.required_tonnage_max %}
+                                {{ mold.required_tonnage_min }}-{{ mold.required_tonnage_max }} {{ t('ton') }}
+                            {% elif mold.required_tonnage_min %}
+                                {{ mold.required_tonnage_min }}+ {{ t('ton') }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if mold.cycle_time %}
+                                {{ mold.cycle_time }} {{ t('seconds') }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>{{ "{:,}".format(mold.total_shots) }}</td>
+                        <td>
+                            <span class="badge badge-{{ mold.status }}">
+                                {{ t(mold.status) }}
+                            </span>
+                        </td>
+                        <td class="actions">
+                            <a href="{{ url_for('edit_mold', id=mold.id) }}" class="btn-small btn-edit">{{ t('edit') }}</a>
+                            <a href="{{ url_for('delete_mold', id=mold.id) }}" 
+                               class="btn-small btn-delete" 
+                               onclick="return confirm('{{ t('mold_code') }}: {{ mold.mold_code }} - Silmek istediğinize emin misiniz?')">{{ t('delete') }}</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center">{{ t('no_data') }}</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

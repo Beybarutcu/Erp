@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t('add_production') }} - Simple ERP{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{{ t('add_production') }}</h1>
+    <a href="{{ url_for('production') }}" class="btn-secondary">← {{ t('back') }}</a>
+</div>
+
+<div class="form-container">
+    <form method="POST" class="standard-form">
+        <h3>{{ t('production_info') }}</h3>
+        
+        <div class="form-group">
+            <label for="product_id">{{ t('select_product') }} *</label>
+            <select id="product_id" name="product_id" required onchange="updateMoldOptions()">
+                <option value="">{{ t('select') }}</option>
+                {% for product in products %}
+                    <option value="{{ product.id }}" 
+                            data-mold="{{ product.mold_id }}"
+                            data-cycle="{{ product.cycle_time }}">
+                        {{ product.sku }} - {{ product.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="mold_id">{{ t('select_mold') }} *</label>
+                <select id="mold_id" name="mold_id" required>
+                    <option value="">{{ t('select') }}</option>
+                    {% for mold in molds %}
+                        <option value="{{ mold.id }}">
+                            {{ mold.mold_code }} - {{ mold.mold_name }} ({{ mold.cavity_count }} {{ t('cavity') }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="machine_id">{{ t('select_machine') }}</label>
+                <select id="machine_id" name="machine_id">
+                    <option value="">{{ t('none') }}</option>
+                    {% for machine in machines %}
+                        <option value="{{ machine.id }}">
+                            {{ machine.machine_code }} - {{ machine.tonnage }} {{ t('ton') }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="planned_quantity">{{ t('planned_quantity') }} *</label>
+                <input type="number" id="planned_quantity" name="planned_quantity" required min="1"
+                       placeholder="10000">
+            </div>
+            
+            <div class="form-group">
+                <label for="operator_name">{{ t('operator_name') }}</label>
+                <input type="text" id="operator_name" name="operator_name"
+                       placeholder="Mehmet Yılmaz">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="planned_start_date">{{ t('planned_start_date') }}</label>
+                <input type="date" id="planned_start_date" name="planned_start_date">
+            </div>
+            
+            <div class="form-group">
+                <label for="planned_end_date">{{ t('planned_end_date') }}</label>
+                <input type="date" id="planned_end_date" name="planned_end_date">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="notes">{{ t('notes') }}</label>
+            <textarea id="notes" name="notes" rows="3"></textarea>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">{{ t('add') }}</button>
+            <a href="{{ url_for('production') }}" class="btn-secondary">{{ t('cancel') }}</a>
+        </div>
+    </form>
+</div>
+
+<script>
+function updateMoldOptions() {
+    const productSelect = document.getElementById('product_id');
+    const moldSelect = document.getElementById('mold_id');
+    const selectedOption = productSelect.options[productSelect.selectedIndex];
+    const moldId = selectedOption.getAttribute('data-mold');
+    
+    if (moldId) {
+        moldSelect.value = moldId;
+    }
+}
+</script>
+{% endblock %}

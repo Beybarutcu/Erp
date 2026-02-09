@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t('quality_check') }} - Simple ERP{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{{ t('quality_check') }}</h1>
+    <a href="{{ url_for('production') }}" class="btn-secondary">← {{ t('back') }}</a>
+</div>
+
+<div class="form-container">
+    <div class="info-box" style="margin-bottom: 2rem; padding: 1rem; background: #f1f5f9; border-radius: 0.5rem;">
+        <h3>{{ t('production_info') }}</h3>
+        <p><strong>{{ t('order_number') }}:</strong> {{ order.order_number }}</p>
+        <p><strong>{{ t('product_name') }}:</strong> {{ order.product_name }}</p>
+        <p><strong>{{ t('produced_quantity') }}:</strong> {{ "{:,}".format(order.produced_quantity) }}</p>
+        <p><strong>{{ t('scrap_quantity') }}:</strong> {{ "{:,}".format(order.scrap_quantity) }}</p>
+    </div>
+
+    <form method="POST" class="standard-form">
+        <h3>{{ t('quality_info') }}</h3>
+        
+        <div class="form-group">
+            <label for="quality_status">{{ t('quality_status') }} *</label>
+            <select id="quality_status" name="quality_status" required>
+                <option value="passed">✅ {{ t('passed') }}</option>
+                <option value="failed">❌ {{ t('failed') }}</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="quality_inspector">{{ t('quality_inspector') }}</label>
+            <input type="text" id="quality_inspector" name="quality_inspector">
+        </div>
+
+        <div class="form-group">
+            <label for="quality_notes">{{ t('quality_notes') }}</label>
+            <textarea id="quality_notes" name="quality_notes" rows="3"></textarea>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">{{ t('save') }}</button>
+            <a href="{{ url_for('production') }}" class="btn-secondary">{{ t('cancel') }}</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}{% if mold %}{{ t('edit') }}{% else %}{{ t('add_mold') }}{% endif %} - Simple ERP{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{% if mold %}{{ t('edit') }} {{ t('molds') }}{% else %}{{ t('add_mold') }}{% endif %}</h1>
+    <a href="{{ url_for('molds') }}" class="btn-secondary">← {{ t('back') }}</a>
+</div>
+
+<div class="form-container">
+    <form method="POST" class="standard-form">
+        <h3>{{ t('description') }}</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="mold_code">{{ t('mold_code') }} *</label>
+                <input type="text" id="mold_code" name="mold_code" required 
+                       value="{% if mold %}{{ mold.mold_code }}{% endif %}"
+                       placeholder="K-001">
+            </div>
+            
+            <div class="form-group">
+                <label for="mold_name">{{ t('mold_name') }} *</label>
+                <input type="text" id="mold_name" name="mold_name" required 
+                       value="{% if mold %}{{ mold.mold_name }}{% endif %}"
+                       placeholder="{{ t('mold_name') }}">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="cavity_count">{{ t('cavity_count') }} *</label>
+                <input type="number" id="cavity_count" name="cavity_count" required min="1"
+                       value="{% if mold %}{{ mold.cavity_count }}{% else %}1{% endif %}">
+            </div>
+            
+            <div class="form-group">
+                <label for="status">{{ t('status') }}</label>
+                <select id="status" name="status">
+                    <option value="active" {% if mold and mold.status == 'active' %}selected{% endif %}>{{ t('active') }}</option>
+                    <option value="maintenance" {% if mold and mold.status == 'maintenance' %}selected{% endif %}>{{ t('maintenance_status') }}</option>
+                    <option value="broken" {% if mold and mold.status == 'broken' %}selected{% endif %}>{{ t('broken') }}</option>
+                    <option value="inactive" {% if mold and mold.status == 'inactive' %}selected{% endif %}>{{ t('inactive') }}</option>
+                </select>
+            </div>
+        </div>
+
+        <h3 style="margin-top: 2rem;">Teknik Özellikler</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="compatible_materials">{{ t('compatible_materials') }}</label>
+                <input type="text" id="compatible_materials" name="compatible_materials"
+                       value="{% if mold %}{{ mold.compatible_materials }}{% endif %}"
+                       placeholder="PP, PE, ABS">
+            </div>
+            
+            <div class="form-group">
+                <label for="cycle_time">{{ t('cycle_time') }} ({{ t('seconds') }})</label>
+                <input type="number" id="cycle_time" name="cycle_time" min="1"
+                       value="{% if mold %}{{ mold.cycle_time }}{% endif %}">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="required_tonnage_min">Min {{ t('required_tonnage') }} ({{ t('ton') }})</label>
+                <input type="number" id="required_tonnage_min" name="required_tonnage_min" min="1"
+                       value="{% if mold %}{{ mold.required_tonnage_min }}{% endif %}">
+            </div>
+            
+            <div class="form-group">
+                <label for="required_tonnage_max">Max {{ t('required_tonnage') }} ({{ t('ton') }})</label>
+                <input type="number" id="required_tonnage_max" name="required_tonnage_max" min="1"
+                       value="{% if mold %}{{ mold.required_tonnage_max }}{% endif %}">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="weight">{{ t('weight') }} ({{ t('kg') }})</label>
+                <input type="number" id="weight" name="weight" step="0.1" min="0"
+                       value="{% if mold %}{{ mold.weight }}{% endif %}">
+            </div>
+            
+            <div class="form-group">
+                <label for="dimensions">{{ t('dimensions') }} (mm)</label>
+                <input type="text" id="dimensions" name="dimensions"
+                       value="{% if mold %}{{ mold.dimensions }}{% endif %}"
+                       placeholder="600x500x400">
+            </div>
+        </div>
+
+        <h3 style="margin-top: 2rem;">{{ t('maintenance_interval') }}</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="total_shots">{{ t('total_shots') }}</label>
+                <input type="number" id="total_shots" name="total_shots" min="0"
+                       value="{% if mold %}{{ mold.total_shots }}{% else %}0{% endif %}">
+            </div>
+            
+            <div class="form-group">
+                <label for="maintenance_interval">{{ t('maintenance_interval') }} ({{ t('shots') }})</label>
+                <input type="number" id="maintenance_interval" name="maintenance_interval" min="1000"
+                       value="{% if mold %}{{ mold.maintenance_interval }}{% else %}500000{% endif %}">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="last_maintenance_date">{{ t('last_maintenance') }}</label>
+                <input type="date" id="last_maintenance_date" name="last_maintenance_date"
+                       value="{% if mold %}{{ mold.last_maintenance_date }}{% endif %}">
+            </div>
+            
+            <div class="form-group">
+                <label for="next_maintenance_date">{{ t('next_maintenance') }}</label>
+                <input type="date" id="next_maintenance_date" name="next_maintenance_date"
+                       value="{% if mold %}{{ mold.next_maintenance_date }}{% endif %}">
+            </div>
+        </div>
+
+        <h3 style="margin-top: 2rem;">Diğer Bilgiler</h3>
+        <div class="form-group">
+            <label for="location">{{ t('location') }}</label>
+            <input type="text" id="location" name="location"
+                   value="{% if mold %}{{ mold.location }}{% endif %}"
+                   placeholder="Kalıp Deposu - Raf A12">
+        </div>
+
+        <div class="form-group">
+            <label for="notes">{{ t('notes') }}</label>
+            <textarea id="notes" name="notes" rows="3">{% if mold %}{{ mold.notes }}{% endif %}</textarea>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">
+                {% if mold %}{{ t('update') }}{% else %}{{ t('add') }}{% endif %} {{ t('molds') }}
+            </button>
+            <a href="{{ url_for('molds') }}" class="btn-secondary">{{ t('cancel') }}</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

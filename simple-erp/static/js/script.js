@@ -1,5 +1,19 @@
 // Simple ERP JavaScript Functions
 
+// Language Dropdown Toggle
+function toggleLanguage() {
+    const dropdown = document.getElementById('languageDropdown');
+    dropdown.classList.toggle('active');
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+    const dropdown = document.getElementById('languageDropdown');
+    if (dropdown && !dropdown.contains(event.target)) {
+        dropdown.classList.remove('active');
+    }
+});
+
 // Confirm delete actions
 document.addEventListener('DOMContentLoaded', function() {
     // Add smooth transitions

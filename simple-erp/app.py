@@ -4,11 +4,38 @@ from datetime import datetime
 import sqlite3
 import os
 from functools import wraps
+import json
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-change-this-in-production'
 
 DATABASE = 'database/erp.db'
+
+# Load translations from JSON files
+def load_translations():
+    """Load translation files from translations/ directory"""
+    translations = {}
+    translation_dir = os.path.join(os.path.dirname(__file__), 'translations')
+    
+    for lang_code in ['tr', 'en']:
+        file_path = os.path.join(translation_dir, f'{lang_code}.json')
+        if os.path.exists(file_path):
+            with open(file_path, 'r', encoding='utf-8') as f:
+                translations[lang_code] = json.load(f)
+        else:
+            # Fallback to empty dict if file not found
+            translations[lang_code] = {}
+    
+    return translations
+
+# Load translations once at startup
+TRANSLATIONS = load_translations()
+
+def get_translation(key, lang=None):
+    """Get translation for a key"""
+    if lang is None:
+        lang = session.get('language', 'tr')
+    return TRANSLATIONS.get(lang, TRANSLATIONS.get('tr', {})).get(key, key)
 
 # Database helper functions
 def get_db():
@@ -29,11 +56,12 @@ def init_db():
             full_name TEXT NOT NULL,
             role TEXT NOT NULL,
             email TEXT,
+            language TEXT DEFAULT 'tr',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
     
-    # Products/Inventory table
+    # Products/Inventory table - Enhanced for manufacturing
     db.execute('''
         CREATE TABLE IF NOT EXISTS products (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -41,13 +69,28 @@ def init_db():
             sku TEXT UNIQUE NOT NULL,
             description TEXT,
             category TEXT,
+            product_type TEXT DEFAULT 'finished_good',
+            material_type TEXT,
+            material_grade TEXT,
+            color TEXT,
+            piece_weight REAL,
+            dimensions TEXT,
             quantity INTEGER DEFAULT 0,
+            unit TEXT DEFAULT 'pcs',
             unit_price REAL NOT NULL,
+            cost_price REAL,
             reorder_level INTEGER DEFAULT 10,
             supplier_id INTEGER,
+            mold_id INTEGER,
+            cycle_time INTEGER,
+            pieces_per_hour INTEGER,
+            technical_drawing_no TEXT,
+            packaging_qty INTEGER,
+            storage_location TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (supplier_id) REFERENCES suppliers(id)
+            FOREIGN KEY (supplier_id) REFERENCES suppliers(id),
+            FOREIGN KEY (mold_id) REFERENCES molds(id)
         )
     ''')
     
@@ -74,6 +117,90 @@ def init_db():
             address TEXT,
             contact_person TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Molds table - NEW
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS molds (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            mold_code TEXT UNIQUE NOT NULL,
+            mold_name TEXT NOT NULL,
+            cavity_count INTEGER NOT NULL,
+            compatible_materials TEXT,
+            required_tonnage_min INTEGER,
+            required_tonnage_max INTEGER,
+            cycle_time INTEGER,
+            status TEXT DEFAULT 'active',
+            total_shots INTEGER DEFAULT 0,
+            shots_since_maintenance INTEGER DEFAULT 0,
+            maintenance_interval INTEGER DEFAULT 500000,
+            last_maintenance_date DATE,
+            next_maintenance_date DATE,
+            location TEXT,
+            weight REAL,
+            dimensions TEXT,
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Machines table - NEW
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS machines (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            machine_code TEXT UNIQUE NOT NULL,
+            machine_name TEXT NOT NULL,
+            brand TEXT,
+            model TEXT,
+            tonnage INTEGER,
+            injection_unit INTEGER,
+            screw_diameter INTEGER,
+            max_shot_weight INTEGER,
+            min_mold_size INTEGER,
+            max_mold_size INTEGER,
+            power_consumption INTEGER,
+            status TEXT DEFAULT 'idle',
+            location TEXT,
+            section TEXT,
+            last_maintenance_date DATE,
+            next_maintenance_date DATE,
+            maintenance_interval_days INTEGER DEFAULT 90,
+            total_hours INTEGER DEFAULT 0,
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Production Orders table - NEW
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS production_orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            order_number TEXT UNIQUE NOT NULL,
+            product_id INTEGER NOT NULL,
+            mold_id INTEGER NOT NULL,
+            machine_id INTEGER,
+            operator_name TEXT,
+            planned_quantity INTEGER NOT NULL,
+            produced_quantity INTEGER DEFAULT 0,
+            scrap_quantity INTEGER DEFAULT 0,
+            raw_material_used REAL DEFAULT 0,
+            status TEXT DEFAULT 'planned',
+            planned_start_date DATE,
+            actual_start_date TIMESTAMP,
+            planned_end_date DATE,
+            actual_end_date TIMESTAMP,
+            quality_status TEXT DEFAULT 'pending',
+            quality_inspector TEXT,
+            quality_date TIMESTAMP,
+            quality_notes TEXT,
+            notes TEXT,
+            created_by INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (product_id) REFERENCES products(id),
+            FOREIGN KEY (mold_id) REFERENCES molds(id),
+            FOREIGN KEY (machine_id) REFERENCES machines(id),
+            FOREIGN KEY (created_by) REFERENCES users(id)
         )
     ''')
     
@@ -160,8 +287,8 @@ def init_db():
     if not cursor.fetchone():
         hashed_pw = generate_password_hash('admin123')
         db.execute(
-            "INSERT INTO users (username, password, full_name, role, email) VALUES (?, ?, ?, ?, ?)",
-            ('admin', hashed_pw, 'System Administrator', 'admin', 'admin@company.com')
+            "INSERT INTO users (username, password, full_name, role, email, language) VALUES (?, ?, ?, ?, ?, ?)",
+            ('admin', hashed_pw, 'Sistem Yöneticisi', 'admin', 'admin@company.com', 'tr')
         )
         db.commit()
     
@@ -198,11 +325,26 @@ def login():
             session['username'] = user['username']
             session['full_name'] = user['full_name']
             session['role'] = user['role']
+            session['language'] = user['language'] if user['language'] else 'tr'
             return redirect(url_for('dashboard'))
         
-        return render_template('login.html', error='Invalid credentials')
+        error = get_translation('invalid_credentials', session.get('language', 'tr'))
+        return render_template('login.html', error=error, t=get_translation)
     
-    return render_template('login.html')
+    return render_template('login.html', t=get_translation)
+
+@app.route('/set-language/<lang>')
+def set_language(lang):
+    """Dil değiştirme / Change language"""
+    if lang in ['tr', 'en']:
+        session['language'] = lang
+        # Kullanıcı giriş yapmışsa veritabanını güncelle
+        if 'user_id' in session:
+            db = get_db()
+            db.execute('UPDATE users SET language = ? WHERE id = ?', (lang, session['user_id']))
+            db.commit()
+            db.close()
+    return redirect(request.referrer or url_for('dashboard'))
 
 @app.route('/logout')
 def logout():
@@ -230,7 +372,7 @@ def dashboard():
     }
     
     db.close()
-    return render_template('dashboard.html', stats=stats)
+    return render_template('dashboard.html', stats=stats, t=get_translation)
 
 # Product/Inventory routes
 @app.route('/products')
@@ -238,13 +380,14 @@ def dashboard():
 def products():
     db = get_db()
     products = db.execute('''
-        SELECT p.*, s.name as supplier_name 
+        SELECT p.*, s.name as supplier_name, m.mold_code
         FROM products p 
         LEFT JOIN suppliers s ON p.supplier_id = s.id
+        LEFT JOIN molds m ON p.mold_id = m.id
         ORDER BY p.name
     ''').fetchall()
     db.close()
-    return render_template('products.html', products=products)
+    return render_template('products.html', products=products, t=get_translation)
 
 @app.route('/products/add', methods=['GET', 'POST'])
 @login_required
@@ -252,17 +395,35 @@ def add_product():
     if request.method == 'POST':
         db = get_db()
         db.execute('''
-            INSERT INTO products (name, sku, description, category, quantity, unit_price, reorder_level, supplier_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO products (name, sku, description, category, product_type, material_type,
+                                material_grade, color, piece_weight, dimensions, quantity, unit,
+                                unit_price, cost_price, reorder_level, supplier_id, mold_id,
+                                cycle_time, pieces_per_hour, technical_drawing_no, packaging_qty,
+                                storage_location)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             request.form['name'],
             request.form['sku'],
             request.form.get('description', ''),
             request.form.get('category', ''),
-            int(request.form['quantity']),
+            request.form.get('product_type', 'finished_good'),
+            request.form.get('material_type', ''),
+            request.form.get('material_grade', ''),
+            request.form.get('color', ''),
+            float(request.form.get('piece_weight', 0)) if request.form.get('piece_weight') else None,
+            request.form.get('dimensions', ''),
+            int(request.form.get('quantity', 0)),
+            request.form.get('unit', 'pcs'),
             float(request.form['unit_price']),
+            float(request.form.get('cost_price', 0)) if request.form.get('cost_price') else None,
             int(request.form.get('reorder_level', 10)),
-            int(request.form['supplier_id']) if request.form.get('supplier_id') else None
+            int(request.form['supplier_id']) if request.form.get('supplier_id') else None,
+            int(request.form['mold_id']) if request.form.get('mold_id') else None,
+            int(request.form.get('cycle_time', 0)) if request.form.get('cycle_time') else None,
+            int(request.form.get('pieces_per_hour', 0)) if request.form.get('pieces_per_hour') else None,
+            request.form.get('technical_drawing_no', ''),
+            int(request.form.get('packaging_qty', 0)) if request.form.get('packaging_qty') else None,
+            request.form.get('storage_location', '')
         ))
         db.commit()
         db.close()
@@ -270,8 +431,9 @@ def add_product():
     
     db = get_db()
     suppliers = db.execute('SELECT * FROM suppliers ORDER BY name').fetchall()
+    molds = db.execute('SELECT * FROM molds ORDER BY mold_code').fetchall()
     db.close()
-    return render_template('product_form.html', product=None, suppliers=suppliers)
+    return render_template('product_form.html', product=None, suppliers=suppliers, molds=molds, t=get_translation)
 
 @app.route('/products/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -281,17 +443,35 @@ def edit_product(id):
     if request.method == 'POST':
         db.execute('''
             UPDATE products 
-            SET name=?, sku=?, description=?, category=?, quantity=?, unit_price=?, reorder_level=?, supplier_id=?, updated_at=?
+            SET name=?, sku=?, description=?, category=?, product_type=?, material_type=?,
+                material_grade=?, color=?, piece_weight=?, dimensions=?, quantity=?, unit=?,
+                unit_price=?, cost_price=?, reorder_level=?, supplier_id=?, mold_id=?,
+                cycle_time=?, pieces_per_hour=?, technical_drawing_no=?, packaging_qty=?,
+                storage_location=?, updated_at=?
             WHERE id=?
         ''', (
             request.form['name'],
             request.form['sku'],
             request.form.get('description', ''),
             request.form.get('category', ''),
-            int(request.form['quantity']),
+            request.form.get('product_type', 'finished_good'),
+            request.form.get('material_type', ''),
+            request.form.get('material_grade', ''),
+            request.form.get('color', ''),
+            float(request.form.get('piece_weight', 0)) if request.form.get('piece_weight') else None,
+            request.form.get('dimensions', ''),
+            int(request.form.get('quantity', 0)),
+            request.form.get('unit', 'pcs'),
             float(request.form['unit_price']),
+            float(request.form.get('cost_price', 0)) if request.form.get('cost_price') else None,
             int(request.form.get('reorder_level', 10)),
             int(request.form['supplier_id']) if request.form.get('supplier_id') else None,
+            int(request.form['mold_id']) if request.form.get('mold_id') else None,
+            int(request.form.get('cycle_time', 0)) if request.form.get('cycle_time') else None,
+            int(request.form.get('pieces_per_hour', 0)) if request.form.get('pieces_per_hour') else None,
+            request.form.get('technical_drawing_no', ''),
+            int(request.form.get('packaging_qty', 0)) if request.form.get('packaging_qty') else None,
+            request.form.get('storage_location', ''),
             datetime.now(),
             id
         ))
@@ -301,8 +481,9 @@ def edit_product(id):
     
     product = db.execute('SELECT * FROM products WHERE id = ?', (id,)).fetchone()
     suppliers = db.execute('SELECT * FROM suppliers ORDER BY name').fetchall()
+    molds = db.execute('SELECT * FROM molds ORDER BY mold_code').fetchall()
     db.close()
-    return render_template('product_form.html', product=product, suppliers=suppliers)
+    return render_template('product_form.html', product=product, suppliers=suppliers, molds=molds, t=get_translation)
 
 @app.route('/products/delete/<int:id>')
 @login_required
@@ -320,7 +501,7 @@ def customers():
     db = get_db()
     customers = db.execute('SELECT * FROM customers ORDER BY name').fetchall()
     db.close()
-    return render_template('customers.html', customers=customers)
+    return render_template('customers.html', customers=customers, t=get_translation)
 
 @app.route('/customers/add', methods=['GET', 'POST'])
 @login_required
@@ -341,7 +522,7 @@ def add_customer():
         db.close()
         return redirect(url_for('customers'))
     
-    return render_template('customer_form.html', customer=None)
+    return render_template('customer_form.html', customer=None, t=get_translation)
 
 @app.route('/customers/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -367,7 +548,7 @@ def edit_customer(id):
     
     customer = db.execute('SELECT * FROM customers WHERE id = ?', (id,)).fetchone()
     db.close()
-    return render_template('customer_form.html', customer=customer)
+    return render_template('customer_form.html', customer=customer, t=get_translation)
 
 # Supplier routes
 @app.route('/suppliers')
@@ -376,7 +557,7 @@ def suppliers():
     db = get_db()
     suppliers = db.execute('SELECT * FROM suppliers ORDER BY name').fetchall()
     db.close()
-    return render_template('suppliers.html', suppliers=suppliers)
+    return render_template('suppliers.html', suppliers=suppliers, t=get_translation)
 
 @app.route('/suppliers/add', methods=['GET', 'POST'])
 @login_required
@@ -397,7 +578,7 @@ def add_supplier():
         db.close()
         return redirect(url_for('suppliers'))
     
-    return render_template('supplier_form.html', supplier=None)
+    return render_template('supplier_form.html', supplier=None, t=get_translation)
 
 @app.route('/suppliers/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -423,7 +604,360 @@ def edit_supplier(id):
     
     supplier = db.execute('SELECT * FROM suppliers WHERE id = ?', (id,)).fetchone()
     db.close()
-    return render_template('supplier_form.html', supplier=supplier)
+    return render_template('supplier_form.html', supplier=supplier, t=get_translation)
+
+# Mold Management Routes
+@app.route('/molds')
+@login_required
+def molds():
+    db = get_db()
+    molds = db.execute('SELECT * FROM molds ORDER BY mold_code').fetchall()
+    db.close()
+    return render_template('molds.html', molds=molds, t=get_translation)
+
+@app.route('/molds/add', methods=['GET', 'POST'])
+@login_required
+def add_mold():
+    if request.method == 'POST':
+        db = get_db()
+        db.execute('''
+            INSERT INTO molds (mold_code, mold_name, cavity_count, compatible_materials,
+                             required_tonnage_min, required_tonnage_max, cycle_time, status,
+                             total_shots, maintenance_interval, last_maintenance_date, 
+                             next_maintenance_date, location, weight, dimensions, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            request.form['mold_code'],
+            request.form['mold_name'],
+            int(request.form['cavity_count']),
+            request.form.get('compatible_materials', ''),
+            int(request.form['required_tonnage_min']) if request.form.get('required_tonnage_min') else None,
+            int(request.form['required_tonnage_max']) if request.form.get('required_tonnage_max') else None,
+            int(request.form['cycle_time']) if request.form.get('cycle_time') else None,
+            request.form.get('status', 'active'),
+            int(request.form.get('total_shots', 0)),
+            int(request.form.get('maintenance_interval', 500000)),
+            request.form.get('last_maintenance_date'),
+            request.form.get('next_maintenance_date'),
+            request.form.get('location', ''),
+            float(request.form.get('weight', 0)) if request.form.get('weight') else None,
+            request.form.get('dimensions', ''),
+            request.form.get('notes', '')
+        ))
+        db.commit()
+        db.close()
+        return redirect(url_for('molds'))
+    
+    return render_template('mold_form.html', mold=None, t=get_translation)
+
+@app.route('/molds/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_mold(id):
+    db = get_db()
+    
+    if request.method == 'POST':
+        db.execute('''
+            UPDATE molds 
+            SET mold_code=?, mold_name=?, cavity_count=?, compatible_materials=?,
+                required_tonnage_min=?, required_tonnage_max=?, cycle_time=?, status=?,
+                total_shots=?, maintenance_interval=?, last_maintenance_date=?, 
+                next_maintenance_date=?, location=?, weight=?, dimensions=?, notes=?
+            WHERE id=?
+        ''', (
+            request.form['mold_code'],
+            request.form['mold_name'],
+            int(request.form['cavity_count']),
+            request.form.get('compatible_materials', ''),
+            int(request.form['required_tonnage_min']) if request.form.get('required_tonnage_min') else None,
+            int(request.form['required_tonnage_max']) if request.form.get('required_tonnage_max') else None,
+            int(request.form['cycle_time']) if request.form.get('cycle_time') else None,
+            request.form.get('status', 'active'),
+            int(request.form.get('total_shots', 0)),
+            int(request.form.get('maintenance_interval', 500000)),
+            request.form.get('last_maintenance_date'),
+            request.form.get('next_maintenance_date'),
+            request.form.get('location', ''),
+            float(request.form.get('weight', 0)) if request.form.get('weight') else None,
+            request.form.get('dimensions', ''),
+            request.form.get('notes', ''),
+            id
+        ))
+        db.commit()
+        db.close()
+        return redirect(url_for('molds'))
+    
+    mold = db.execute('SELECT * FROM molds WHERE id = ?', (id,)).fetchone()
+    db.close()
+    return render_template('mold_form.html', mold=mold, t=get_translation)
+
+@app.route('/molds/delete/<int:id>')
+@login_required
+def delete_mold(id):
+    db = get_db()
+    db.execute('DELETE FROM molds WHERE id = ?', (id,))
+    db.commit()
+    db.close()
+    return redirect(url_for('molds'))
+
+# Machine Management Routes
+@app.route('/machines')
+@login_required
+def machines():
+    db = get_db()
+    machines = db.execute('SELECT * FROM machines ORDER BY machine_code').fetchall()
+    db.close()
+    return render_template('machines.html', machines=machines, t=get_translation)
+
+@app.route('/machines/add', methods=['GET', 'POST'])
+@login_required
+def add_machine():
+    if request.method == 'POST':
+        db = get_db()
+        db.execute('''
+            INSERT INTO machines (machine_code, machine_name, brand, model, tonnage,
+                                injection_unit, screw_diameter, max_shot_weight,
+                                min_mold_size, max_mold_size, power_consumption,
+                                status, location, section, last_maintenance_date,
+                                next_maintenance_date, maintenance_interval_days,
+                                total_hours, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            request.form['machine_code'],
+            request.form['machine_name'],
+            request.form.get('brand', ''),
+            request.form.get('model', ''),
+            int(request.form['tonnage']) if request.form.get('tonnage') else None,
+            int(request.form.get('injection_unit', 0)) if request.form.get('injection_unit') else None,
+            int(request.form.get('screw_diameter', 0)) if request.form.get('screw_diameter') else None,
+            int(request.form.get('max_shot_weight', 0)) if request.form.get('max_shot_weight') else None,
+            int(request.form.get('min_mold_size', 0)) if request.form.get('min_mold_size') else None,
+            int(request.form.get('max_mold_size', 0)) if request.form.get('max_mold_size') else None,
+            int(request.form.get('power_consumption', 0)) if request.form.get('power_consumption') else None,
+            request.form.get('status', 'idle'),
+            request.form.get('location', ''),
+            request.form.get('section', ''),
+            request.form.get('last_maintenance_date'),
+            request.form.get('next_maintenance_date'),
+            int(request.form.get('maintenance_interval_days', 90)),
+            int(request.form.get('total_hours', 0)),
+            request.form.get('notes', '')
+        ))
+        db.commit()
+        db.close()
+        return redirect(url_for('machines'))
+    
+    return render_template('machine_form.html', machine=None, t=get_translation)
+
+@app.route('/machines/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_machine(id):
+    db = get_db()
+    
+    if request.method == 'POST':
+        db.execute('''
+            UPDATE machines 
+            SET machine_code=?, machine_name=?, brand=?, model=?, tonnage=?,
+                injection_unit=?, screw_diameter=?, max_shot_weight=?,
+                min_mold_size=?, max_mold_size=?, power_consumption=?,
+                status=?, location=?, section=?, last_maintenance_date=?,
+                next_maintenance_date=?, maintenance_interval_days=?,
+                total_hours=?, notes=?
+            WHERE id=?
+        ''', (
+            request.form['machine_code'],
+            request.form['machine_name'],
+            request.form.get('brand', ''),
+            request.form.get('model', ''),
+            int(request.form['tonnage']) if request.form.get('tonnage') else None,
+            int(request.form.get('injection_unit', 0)) if request.form.get('injection_unit') else None,
+            int(request.form.get('screw_diameter', 0)) if request.form.get('screw_diameter') else None,
+            int(request.form.get('max_shot_weight', 0)) if request.form.get('max_shot_weight') else None,
+            int(request.form.get('min_mold_size', 0)) if request.form.get('min_mold_size') else None,
+            int(request.form.get('max_mold_size', 0)) if request.form.get('max_mold_size') else None,
+            int(request.form.get('power_consumption', 0)) if request.form.get('power_consumption') else None,
+            request.form.get('status', 'idle'),
+            request.form.get('location', ''),
+            request.form.get('section', ''),
+            request.form.get('last_maintenance_date'),
+            request.form.get('next_maintenance_date'),
+            int(request.form.get('maintenance_interval_days', 90)),
+            int(request.form.get('total_hours', 0)),
+            request.form.get('notes', ''),
+            id
+        ))
+        db.commit()
+        db.close()
+        return redirect(url_for('machines'))
+    
+    machine = db.execute('SELECT * FROM machines WHERE id = ?', (id,)).fetchone()
+    db.close()
+    return render_template('machine_form.html', machine=machine, t=get_translation)
+
+@app.route('/machines/delete/<int:id>')
+@login_required
+def delete_machine(id):
+    db = get_db()
+    db.execute('DELETE FROM machines WHERE id = ?', (id,))
+    db.commit()
+    db.close()
+    return redirect(url_for('machines'))
+
+# Production Management Routes
+@app.route('/production')
+@login_required
+def production():
+    db = get_db()
+    orders = db.execute('''
+        SELECT po.*, p.name as product_name, p.sku, m.mold_code, mc.machine_code
+        FROM production_orders po
+        JOIN products p ON po.product_id = p.id
+        JOIN molds m ON po.mold_id = m.id
+        LEFT JOIN machines mc ON po.machine_id = mc.id
+        ORDER BY po.created_at DESC
+    ''').fetchall()
+    db.close()
+    return render_template('production.html', orders=orders, t=get_translation)
+
+@app.route('/production/add', methods=['GET', 'POST'])
+@login_required
+def add_production():
+    if request.method == 'POST':
+        db = get_db()
+        
+        # Generate order number
+        order_count = db.execute('SELECT COUNT(*) as count FROM production_orders').fetchone()['count']
+        order_number = f'PO-{order_count + 1:05d}'
+        
+        db.execute('''
+            INSERT INTO production_orders (order_number, product_id, mold_id, machine_id,
+                                         operator_name, planned_quantity, planned_start_date,
+                                         planned_end_date, notes, created_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            order_number,
+            int(request.form['product_id']),
+            int(request.form['mold_id']),
+            int(request.form['machine_id']) if request.form.get('machine_id') else None,
+            request.form.get('operator_name', ''),
+            int(request.form['planned_quantity']),
+            request.form.get('planned_start_date'),
+            request.form.get('planned_end_date'),
+            request.form.get('notes', ''),
+            session['user_id']
+        ))
+        db.commit()
+        db.close()
+        return redirect(url_for('production'))
+    
+    db = get_db()
+    products = db.execute('SELECT * FROM products WHERE product_type = "finished_good" ORDER BY name').fetchall()
+    molds = db.execute('SELECT * FROM molds WHERE status = "active" ORDER BY mold_code').fetchall()
+    machines = db.execute('SELECT * FROM machines ORDER BY machine_code').fetchall()
+    db.close()
+    return render_template('production_form.html', order=None, products=products, 
+                         molds=molds, machines=machines, t=get_translation)
+
+@app.route('/production/start/<int:id>', methods=['POST'])
+@login_required
+def start_production(id):
+    db = get_db()
+    db.execute('''
+        UPDATE production_orders 
+        SET status = 'in_progress', actual_start_date = ?
+        WHERE id = ?
+    ''', (datetime.now(), id))
+    db.commit()
+    db.close()
+    return redirect(url_for('production'))
+
+@app.route('/production/complete/<int:id>', methods=['GET', 'POST'])
+@login_required
+def complete_production(id):
+    db = get_db()
+    
+    if request.method == 'POST':
+        produced = int(request.form['produced_quantity'])
+        scrap = int(request.form['scrap_quantity'])
+        material_used = float(request.form.get('raw_material_used', 0))
+        
+        db.execute('''
+            UPDATE production_orders 
+            SET status = 'completed', 
+                actual_end_date = ?,
+                produced_quantity = ?,
+                scrap_quantity = ?,
+                raw_material_used = ?,
+                quality_status = 'pending'
+            WHERE id = ?
+        ''', (datetime.now(), produced, scrap, material_used, id))
+        
+        # Update mold shots
+        order = db.execute('SELECT mold_id FROM production_orders WHERE id = ?', (id,)).fetchone()
+        db.execute('''
+            UPDATE molds 
+            SET total_shots = total_shots + ?,
+                shots_since_maintenance = shots_since_maintenance + ?
+            WHERE id = ?
+        ''', (produced + scrap, produced + scrap, order['mold_id']))
+        
+        db.commit()
+        db.close()
+        return redirect(url_for('production'))
+    
+    order = db.execute('''
+        SELECT po.*, p.name as product_name, m.mold_code
+        FROM production_orders po
+        JOIN products p ON po.product_id = p.id
+        JOIN molds m ON po.mold_id = m.id
+        WHERE po.id = ?
+    ''', (id,)).fetchone()
+    db.close()
+    return render_template('production_complete.html', order=order, t=get_translation)
+
+@app.route('/production/quality/<int:id>', methods=['GET', 'POST'])
+@login_required
+def production_quality(id):
+    db = get_db()
+    
+    if request.method == 'POST':
+        quality_result = request.form['quality_status']
+        
+        db.execute('''
+            UPDATE production_orders 
+            SET quality_status = ?,
+                quality_inspector = ?,
+                quality_date = ?,
+                quality_notes = ?
+            WHERE id = ?
+        ''', (
+            quality_result,
+            request.form.get('quality_inspector', ''),
+            datetime.now(),
+            request.form.get('quality_notes', ''),
+            id
+        ))
+        
+        # If quality passed, update product stock
+        if quality_result == 'passed':
+            order = db.execute('SELECT product_id, produced_quantity FROM production_orders WHERE id = ?', (id,)).fetchone()
+            db.execute('''
+                UPDATE products 
+                SET quantity = quantity + ?
+                WHERE id = ?
+            ''', (order['produced_quantity'], order['product_id']))
+        
+        db.commit()
+        db.close()
+        return redirect(url_for('production'))
+    
+    order = db.execute('''
+        SELECT po.*, p.name as product_name
+        FROM production_orders po
+        JOIN products p ON po.product_id = p.id
+        WHERE po.id = ?
+    ''', (id,)).fetchone()
+    db.close()
+    return render_template('production_quality.html', order=order, t=get_translation)
 
 # Sales Order routes
 @app.route('/sales')
@@ -437,7 +971,7 @@ def sales():
         ORDER BY so.order_date DESC
     ''').fetchall()
     db.close()
-    return render_template('sales.html', orders=orders)
+    return render_template('sales.html', orders=orders, t=get_translation)
 
 @app.route('/sales/add', methods=['GET', 'POST'])
 @login_required
@@ -503,7 +1037,7 @@ def add_sale():
     customers = db.execute('SELECT * FROM customers ORDER BY name').fetchall()
     products = db.execute('SELECT * FROM products ORDER BY name').fetchall()
     db.close()
-    return render_template('sales_form.html', customers=customers, products=products)
+    return render_template('sales_form.html', customers=customers, t=get_translation, products=products)
 
 # Reports route
 @app.route('/reports')
@@ -542,7 +1076,7 @@ def reports():
     }
     
     db.close()
-    return render_template('reports.html', data=reports_data)
+    return render_template('reports.html', data=reports_data, t=get_translation)
 
 # API endpoints for dynamic data
 @app.route('/api/products')

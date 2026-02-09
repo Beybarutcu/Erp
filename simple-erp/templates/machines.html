@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t('machines') }} - Simple ERP{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{{ t('machines') }}</h1>
+    <a href="{{ url_for('add_machine') }}" class="btn-primary">+ {{ t('add_machine') }}</a>
+</div>
+
+<div class="content-section">
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>{{ t('machine_code') }}</th>
+                    <th>{{ t('machine_name') }}</th>
+                    <th>{{ t('brand') }}</th>
+                    <th>{{ t('tonnage') }}</th>
+                    <th>{{ t('section') }}</th>
+                    <th>{{ t('total_hours') }}</th>
+                    <th>{{ t('status') }}</th>
+                    <th>{{ t('actions') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if machines %}
+                    {% for machine in machines %}
+                    <tr>
+                        <td><strong>{{ machine.machine_code }}</strong></td>
+                        <td>{{ machine.machine_name }}</td>
+                        <td>{{ machine.brand or '-' }}</td>
+                        <td>
+                            {% if machine.tonnage %}
+                                {{ machine.tonnage }} {{ t('ton') }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>{{ machine.section or '-' }}</td>
+                        <td>{{ "{:,}".format(machine.total_hours) }} {{ t('hours') }}</td>
+                        <td>
+                            <span class="badge badge-{{ machine.status }}">
+                                {{ t(machine.status) }}
+                            </span>
+                        </td>
+                        <td class="actions">
+                            <a href="{{ url_for('edit_machine', id=machine.id) }}" class="btn-small btn-edit">{{ t('edit') }}</a>
+                            <a href="{{ url_for('delete_machine', id=machine.id) }}" 
+                               class="btn-small btn-delete" 
+                               onclick="return confirm('{{ t('machine_code') }}: {{ machine.machine_code }} - Silmek istediğinize emin misiniz?')">{{ t('delete') }}</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center">{{ t('no_data') }}</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
